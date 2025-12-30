@@ -2,42 +2,43 @@ let db;
 
 function initDB() {
   return new Promise((resolve, reject) => {
-    // Incrementar la versión de la base de datos a 2
-    const request = indexedDB.open('CreditisDB', 2);
+    // Incrementar la versión de la base de datos a 3
+    const request = indexedDB.open('CreditisDB', 3);
 
     request.onupgradeneeded = event => {
       db = event.target.result;
       console.log('Database upgrade needed');
 
-      // --- Almacén de Clientes ---
-      // Si el almacén 'clientes' no existe, lo creamos.
-      // Si ya existe, nos aseguramos de que tenga el índice 'cedula'.
       let clientesStore;
       if (!db.objectStoreNames.contains('clientes')) {
         clientesStore = db.createObjectStore('clientes', { keyPath: 'id', autoIncrement: true });
       } else {
         clientesStore = event.target.transaction.objectStore('clientes');
       }
-
-      // Crear un índice único para la cédula para evitar duplicados
       if (!clientesStore.indexNames.contains('cedula')) {
         clientesStore.createIndex('cedula', 'cedula', { unique: true });
-        console.log('Index "cedula" created on "clientes" store');
       }
 
-      // --- Almacén de Préstamos ---
-      // Si el almacén 'prestamos' no existe, lo creamos.
       let prestamosStore;
       if (!db.objectStoreNames.contains('prestamos')) {
         prestamosStore = db.createObjectStore('prestamos', { keyPath: 'id', autoIncrement: true });
       } else {
         prestamosStore = event.target.transaction.objectStore('prestamos');
       }
-      
-      // Crear un índice para buscar préstamos por cédula de cliente
       if (!prestamosStore.indexNames.contains('clienteCedula')) {
         prestamosStore.createIndex('clienteCedula', 'clienteCedula', { unique: false });
-        console.log('Index "clienteCedula" created on "prestamos" store');
+      }
+      
+      // --- Almacén de Pagos ---
+      let pagosStore;
+      if (!db.objectStoreNames.contains('pagos')) {
+        pagosStore = db.createObjectStore('pagos', { keyPath: 'id', autoIncrement: true });
+      } else {
+        pagosStore = event.target.transaction.objectStore('pagos');
+      }
+      if (!pagosStore.indexNames.contains('prestamoId')) {
+        pagosStore.createIndex('prestamoId', 'prestamoId', { unique: false });
+        console.log('Index "prestamoId" created on "pagos" store');
       }
     };
 
@@ -54,14 +55,6 @@ function initDB() {
   });
 }
 
-// --- Funciones CRUD para Clientes ---
-
-/**
- * Guarda o actualiza un cliente. Si un cliente con la misma cédula ya existe,
- * se actualiza. Si no, se crea uno nuevo.
- * @param {object} cliente - El objeto del cliente a guardar.
- * @returns {Promise<number>} La ID del cliente guardado o actualizado.
- */
 function saveCliente(cliente) {
   return new Promise((resolve, reject) => {
     if (!db) return reject('Database not initialized');
@@ -72,6 +65,7 @@ function saveCliente(cliente) {
 
     getRequest.onsuccess = () => {
       const existingClient = getRequest.result;
+      // Si el cliente existe, actualizamos sus datos. Si no, lo creamos.
       const dataToStore = existingClient ? { ...existingClient, ...cliente } : cliente;
       const putRequest = store.put(dataToStore);
       
@@ -82,11 +76,6 @@ function saveCliente(cliente) {
   });
 }
 
-/**
- * Obtiene un cliente por su número de cédula.
- * @param {string} cedula - El número de cédula del cliente.
- * @returns {Promise<object|undefined>} El objeto del cliente o undefined si no se encuentra.
- */
 function getClienteByCedula(cedula) {
   return new Promise((resolve, reject) => {
     if (!db) return reject('Database not initialized');
@@ -100,13 +89,6 @@ function getClienteByCedula(cedula) {
   });
 }
 
-// --- Funciones CRUD para Préstamos ---
-
-/**
- * Guarda un nuevo préstamo en la base de datos.
- * @param {object} prestamo - El objeto del préstamo a guardar.
- * @returns {Promise<number>} La ID del nuevo préstamo guardado.
- */
 function savePrestamo(prestamo) {
   return new Promise((resolve, reject) => {
     if (!db) return reject('Database not initialized');
@@ -116,5 +98,40 @@ function savePrestamo(prestamo) {
 
     request.onsuccess = () => resolve(request.result);
     request.onerror = event => reject('Error saving prestamo: ' + event.target.error);
+  });
+}
+
+/**
+ * Guarda un nuevo pago en la base de datos.
+ * @param {object} pago - El objeto del pago a guardar.
+ * @returns {Promise<number>} La ID del nuevo pago guardado.
+ */
+function savePago(pago) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('Database not initialized');
+    const transaction = db.transaction(['pagos'], 'readwrite');
+    const store = transaction.objectStore('pagos');
+    const request = store.add(pago);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = event => reject('Error saving pago: ' + event.target.error);
+  });
+}
+
+function getPrestamoById(id) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('Database not initialized');
+    const transaction = db.transaction(['prestamos'], 'readonly');
+    const store = transaction.objectStore('prestamos');
+    const request = store.get(id);
+
+    request.onsuccess = () => {
+        if (request.result) {
+            resolve(request.result);
+        } else {
+            reject('Prestamo not found with id: ' + id);
+        }
+    };
+    request.onerror = event => reject('Error fetching prestamo by id: ' + event.target.error);
   });
 }
