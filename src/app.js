@@ -16,6 +16,36 @@ function calculateAmortization(principal, monthlyInterestRatePercentage, numberO
   return Math.round(monthlyPayment * 100) / 100;
 }
 
+// --- Funciones de Utilidad ---
+
+/**
+ * Formatea el valor de un input numérico para incluir separadores de miles (puntos).
+ * @param {Event} event - El evento del input.
+ */
+function formatNumberInput(event) {
+  const input = event.target;
+  let value = input.value.replace(/\./g, ''); // Eliminar puntos existentes
+  value = value.replace(/[^0-9]/g, ''); // Permitir solo números
+  
+  if (value) {
+    const formattedValue = parseInt(value, 10).toLocaleString('es-PY');
+    input.value = formattedValue;
+  } else {
+    input.value = '';
+  }
+}
+
+/**
+ * Elimina el formato de miles de un string numérico.
+ * @param {string} value - El valor formateado (ej. "1.000.000").
+ * @returns {number} El número sin formato.
+ */
+function unformatNumber(value) {
+  if (typeof value !== 'string') return value;
+  return parseFloat(value.replace(/\./g, ''));
+}
+
+
 // --- Lógica del Dashboard ---
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -167,16 +197,16 @@ function setupEventListeners() {
       });
     }
 
-    // Calcular interés total dinámicamente
+    // Calcular interés total dinámicamente y aplicar formato
     const capitalInput = document.getElementById('capital');
     const cantidadCuotasInput = document.getElementById('cantidadCuotas');
     const montoCuotaInput = document.getElementById('montoCuota');
     const interesTotalInput = document.getElementById('interesTotal');
 
     const calculateInterest = () => {
-      const capital = parseFloat(capitalInput.value) || 0;
+      const capital = unformatNumber(capitalInput.value) || 0;
       const cantidadCuotas = parseInt(cantidadCuotasInput.value) || 0;
-      const montoCuota = parseFloat(montoCuotaInput.value) || 0;
+      const montoCuota = unformatNumber(montoCuotaInput.value) || 0;
 
       if (capital > 0 && cantidadCuotas > 0 && montoCuota > 0) {
         const totalPagado = cantidadCuotas * montoCuota;
@@ -188,6 +218,9 @@ function setupEventListeners() {
       }
     };
 
+    capitalInput.addEventListener('input', formatNumberInput);
+    montoCuotaInput.addEventListener('input', formatNumberInput);
+    
     capitalInput.addEventListener('input', calculateInterest);
     cantidadCuotasInput.addEventListener('input', calculateInterest);
     montoCuotaInput.addEventListener('input', calculateInterest);
@@ -195,19 +228,37 @@ function setupEventListeners() {
     loanForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const formData = new FormData(loanForm);
-      
-      const cliente = {
-        cedula: formData.get('cedula'),
-        nombreApellido: formData.get('nombreApellido'),
-        // Se pueden añadir más campos del cliente si se añaden al formulario
-      };
+      const cedula = formData.get('cedula');
+
+      // --- CRITICAL FIX: Prevent client data overwriting ---
+      // 1. Check if client already exists
+      const existingClient = await getClienteByCedula(cedula);
+
+      // 2. If client does not exist, save a new basic client record.
+      if (!existingClient) {
+        const newClient = {
+          cedula: cedula,
+          nombreApellido: formData.get('nombreApellido'),
+          nombres: '', // Provide empty defaults for other fields
+          apellidos: '',
+          direccion: '',
+          barrio: '',
+          ciudad: '',
+          telefono1: '',
+          telefono2: '',
+          refNombre: '',
+          refTelefono: '',
+        };
+        await saveCliente(newClient);
+      }
+      // If client exists, do nothing with the client data to avoid overwriting.
 
       const prestamo = {
-        clienteCedula: formData.get('cedula'),
-        capital: parseFloat(formData.get('capital')),
+        clienteCedula: cedula,
+        capital: unformatNumber(formData.get('capital')),
         frecuenciaPago: formData.get('frecuenciaPago'),
         cantidadCuotas: parseInt(formData.get('cantidadCuotas')),
-        montoCuota: parseFloat(formData.get('montoCuota')),
+        montoCuota: unformatNumber(formData.get('montoCuota')),
         interesTotal: document.getElementById('interesTotal').value,
         fechaDesembolso: formData.get('fechaDesembolso'),
         fechaPrimerPago: formData.get('fechaPrimerPago'),
@@ -215,7 +266,6 @@ function setupEventListeners() {
       };
 
       try {
-        await saveCliente(cliente);
         await savePrestamo(prestamo);
         alert('Préstamo grabado exitosamente.');
         loanForm.reset();

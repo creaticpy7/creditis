@@ -9,7 +9,9 @@ const urlsToCache = [
   'icons/icon-192x192.png',
   'icons/icon-512x512.png',
   'prestamos.html',
-  'prestamos.js'
+  'prestamos.js',
+  'clientes.html',
+  'clientes.js'
 ];
 
 self.addEventListener('install', event => {
