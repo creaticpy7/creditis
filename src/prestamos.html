@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Préstamos - CREATICPY Creditis</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    #nav-menu {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="app">
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+      <a href="index.html" class="text-xl font-bold">CREATICPY Creditis</a>
+      <div class="relative">
+        <button id="menu-btn" class="text-white focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+        <div id="nav-menu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden origin-top-right transform scale-95 opacity-0">
+          <a href="index.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Nuevo Préstamo</a>
+          <a href="prestamos.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Préstamos</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="p-4">
+      <h1 class="text-2xl font-bold mb-4">Lista de Préstamos</h1>
+      <div id="loans-list" class="space-y-4">
+        <!-- Los préstamos se insertarán aquí dinámicamente -->
+        <p class="text-gray-500">No hay préstamos registrados.</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="db.js"></script>
+  <script src="prestamos.js"></script> <!-- Script específico para esta página -->
+</body>
+</html>

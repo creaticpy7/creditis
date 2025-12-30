@@ -8,12 +8,27 @@
   <meta name="theme-color" content="#007bff">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    /* Estilos para el menú desplegable */
+    #nav-menu {
+      transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+    }
+  </style>
 </head>
 <body class="bg-gray-100">
   <div id="app">
     <!-- Navbar -->
-    <nav class="bg-blue-600 text-white p-4 shadow-md">
+    <nav class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
       <h1 class="text-xl font-bold">CREATICPY Creditis</h1>
+      <div class="relative">
+        <button id="menu-btn" class="text-white focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+        </button>
+        <div id="nav-menu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden origin-top-right transform scale-95 opacity-0">
+          <a href="#" id="new-loan-link" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Nuevo Préstamo</a>
+          <a href="prestamos.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Préstamos</a>
+        </div>
+      </div>
     </nav>
 
     <!-- Main Content -->
@@ -46,41 +61,81 @@
       <div class="bg-white p-4 rounded-lg shadow">
         <h2 class="text-lg font-semibold text-gray-700 mb-2">Cobros de la Semana</h2>
         <div id="weekly-chart-container">
-          <!-- El gráfico se renderizará aquí -->
           <canvas id="weekly-chart"></canvas>
         </div>
       </div>
     </main>
 
-    <!-- Floating Action Button -->
-    <button id="add-loan-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-3xl font-light z-10">
-      +
-    </button>
-
     <!-- Modal Formulario Nuevo Préstamo -->
-    <div id="loan-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-20">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md m-4">
+    <div id="loan-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg m-4">
         <h2 class="text-2xl font-bold mb-4">Nuevo Préstamo</h2>
-        <form id="loan-form">
-          <div class="mb-4">
-            <label for="loan-amount" class="block text-sm font-medium text-gray-700">Monto del Préstamo (Gs.)</label>
-            <input type="number" id="loan-amount" name="loan-amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 5000000" required>
+        <form id="loan-form" class="space-y-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="cedula" class="block text-sm font-medium text-gray-700">Cédula</label>
+              <input type="text" id="cedula" name="cedula" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+            <div>
+              <label for="nombreApellido" class="block text-sm font-medium text-gray-700">Nombre y Apellido</label>
+              <input type="text" id="nombreApellido" name="nombreApellido" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
           </div>
-          <div class="mb-4">
-            <label for="loan-term" class="block text-sm font-medium text-gray-700">Plazo (meses)</label>
-            <input type="number" id="loan-term" name="loan-term" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 12" required>
+
+          <div>
+            <label for="capital" class="block text-sm font-medium text-gray-700">Capital (Gs.)</label>
+            <input type="number" id="capital" name="capital" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
           </div>
-          <div class="mb-4">
-            <label for="interest-rate" class="block text-sm font-medium text-gray-700">Tasa de Interés Mensual (%)</label>
-            <input type="number" step="0.1" id="interest-rate" name="interest-rate" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 2.5" required>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label for="frecuenciaPago" class="block text-sm font-medium text-gray-700">Frecuencia de Pago</label>
+              <select id="frecuenciaPago" name="frecuenciaPago" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+                <option value="D">Diario</option>
+                <option value="S">Semanal</option>
+                <option value="Q">Quincenal</option>
+                <option value="M">Mensual</option>
+                <option value="U">Un solo Pago</option>
+              </select>
+            </div>
+            <div>
+              <label for="cantidadCuotas" class="block text-sm font-medium text-gray-700">Cantidad de Cuotas</label>
+              <input type="number" id="cantidadCuotas" name="cantidadCuotas" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+            <div>
+              <label for="montoCuota" class="block text-sm font-medium text-gray-700">Monto de Cuota (Gs.)</label>
+              <input type="number" id="montoCuota" name="montoCuota" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
           </div>
-          <div class="mb-4">
-            <label for="start-date" class="block text-sm font-medium text-gray-700">Fecha de Inicio</label>
-            <input type="date" id="start-date" name="start-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+
+          <div>
+            <label for="interesTotal" class="block text-sm font-medium text-gray-700">Interés Total (%)</label>
+            <input type="text" id="interesTotal" name="interesTotal" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100" readonly>
           </div>
-          <div class="flex justify-end space-x-4">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="fechaDesembolso" class="block text-sm font-medium text-gray-700">Fecha de Desembolso</label>
+              <input type="date" id="fechaDesembolso" name="fechaDesembolso" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+            <div>
+              <label for="fechaPrimerPago" class="block text-sm font-medium text-gray-700">Fecha de Primer Pago</label>
+              <input type="date" id="fechaPrimerPago" name="fechaPrimerPago" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            </div>
+          </div>
+
+          <div>
+            <label for="estado" class="block text-sm font-medium text-gray-700">Estado</label>
+            <select id="estado" name="estado" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm">
+              <option value="ACTIVO">Activo</option>
+              <option value="CANCELADO">Cancelado</option>
+            </select>
+          </div>
+
+          <div class="flex justify-end space-x-4 pt-4">
             <button type="button" id="cancel-loan-btn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancelar</button>
-            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Guardar Préstamo</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Grabar Préstamo</button>
           </div>
         </form>
       </div>
