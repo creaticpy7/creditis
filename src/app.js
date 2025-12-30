@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDB().then(() => {
     console.log('Base de datos inicializada.');
     renderDashboard();
+    setupEventListeners();
   }).catch(error => {
     console.error('Error al inicializar la base de datos:', error);
   });
@@ -100,5 +101,41 @@ function renderWeeklyChart(weeklyData) {
         }
       }
     }
+  });
+}
+
+// --- Lógica de Eventos y Formularios ---
+
+function setupEventListeners() {
+  const addLoanBtn = document.getElementById('add-loan-btn');
+  const cancelLoanBtn = document.getElementById('cancel-loan-btn');
+  const loanModal = document.getElementById('loan-modal');
+  const loanForm = document.getElementById('loan-form');
+
+  addLoanBtn.addEventListener('click', () => {
+    loanModal.classList.remove('hidden');
+  });
+
+  cancelLoanBtn.addEventListener('click', () => {
+    loanModal.classList.add('hidden');
+  });
+
+  loanForm.addEventListener('submit', event => {
+    event.preventDefault(); // Evitar que la página se recargue
+
+    const formData = new FormData(loanForm);
+    const loanData = {
+      amount: parseFloat(formData.get('loan-amount')),
+      term: parseInt(formData.get('loan-term')),
+      interestRate: parseFloat(formData.get('interest-rate')),
+      startDate: formData.get('start-date')
+    };
+
+    console.log('Datos del nuevo préstamo:', loanData);
+    
+    // Aquí es donde en el futuro se guardarán los datos en IndexedDB
+    
+    loanForm.reset(); // Limpiar el formulario
+    loanModal.classList.add('hidden'); // Ocultar el modal
   });
 }
