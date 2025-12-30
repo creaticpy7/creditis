@@ -53,9 +53,38 @@
     </main>
 
     <!-- Floating Action Button -->
-    <button id="add-loan-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-3xl font-light">
+    <button id="add-loan-btn" class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-3xl font-light z-10">
       +
     </button>
+
+    <!-- Modal Formulario Nuevo Préstamo -->
+    <div id="loan-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-20">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md m-4">
+        <h2 class="text-2xl font-bold mb-4">Nuevo Préstamo</h2>
+        <form id="loan-form">
+          <div class="mb-4">
+            <label for="loan-amount" class="block text-sm font-medium text-gray-700">Monto del Préstamo (Gs.)</label>
+            <input type="number" id="loan-amount" name="loan-amount" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 5000000" required>
+          </div>
+          <div class="mb-4">
+            <label for="loan-term" class="block text-sm font-medium text-gray-700">Plazo (meses)</label>
+            <input type="number" id="loan-term" name="loan-term" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 12" required>
+          </div>
+          <div class="mb-4">
+            <label for="interest-rate" class="block text-sm font-medium text-gray-700">Tasa de Interés Mensual (%)</label>
+            <input type="number" step="0.1" id="interest-rate" name="interest-rate" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 2.5" required>
+          </div>
+          <div class="mb-4">
+            <label for="start-date" class="block text-sm font-medium text-gray-700">Fecha de Inicio</label>
+            <input type="date" id="start-date" name="start-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" required>
+          </div>
+          <div class="flex justify-end space-x-4">
+            <button type="button" id="cancel-loan-btn" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400">Cancelar</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Guardar Préstamo</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
