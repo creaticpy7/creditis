@@ -81,6 +81,12 @@ function closePaymentModal() {
 function setupPaymentModalListeners() {
     const paymentForm = document.getElementById('payment-form');
     const cancelBtn = document.getElementById('cancel-payment-btn');
+    const amountInput = document.getElementById('payment-amount');
+
+    // Aplicar formato de miles al campo de monto
+    if(amountInput) {
+        amountInput.addEventListener('input', formatNumberInput);
+    }
 
     paymentForm.addEventListener('submit', handlePaymentSubmit);
     cancelBtn.addEventListener('click', closePaymentModal);
@@ -90,7 +96,7 @@ async function handlePaymentSubmit(event) {
     event.preventDefault();
     const loanId = parseInt(document.getElementById('payment-loan-id').value, 10);
     const fecha = document.getElementById('payment-date').value;
-    const monto = parseFloat(document.getElementById('payment-amount').value);
+    const monto = unformatNumber(document.getElementById('payment-amount').value);
     const numeroCuota = parseInt(document.getElementById('payment-installment').value, 10);
 
     const pago = {
@@ -143,7 +149,7 @@ function generatePDFReceipt(pago, prestamo, cliente) {
     doc.setFontSize(10);
     doc.text(`Nombre: ${cliente.nombreApellido}`, 20, 70);
     doc.text(`Cédula: ${cliente.cedula}`, 20, 75);
-    doc.text(`Teléfono: ${cliente.telefono}`, 20, 80);
+    doc.text(`Teléfono: ${cliente.telefono1 || 'N/A'}`, 20, 80);
 
     doc.setFontSize(12);
     doc.text("Detalles del Préstamo", 110, 60);

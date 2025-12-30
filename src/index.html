@@ -70,7 +70,7 @@
 
     <!-- Modal Formulario Nuevo Préstamo -->
     <div id="loan-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg m-4">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg m-4 overflow-y-auto max-h-[90vh]">
         <h2 class="text-2xl font-bold mb-4">Nuevo Préstamo</h2>
         <form id="loan-form" class="space-y-4">
 
@@ -87,7 +87,7 @@
 
           <div>
             <label for="capital" class="block text-sm font-medium text-gray-700">Capital (Gs.)</label>
-            <input type="number" id="capital" name="capital" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+            <input type="text" inputmode="numeric" id="capital" name="capital" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -107,7 +107,7 @@
             </div>
             <div>
               <label for="montoCuota" class="block text-sm font-medium text-gray-700">Monto de Cuota (Gs.)</label>
-              <input type="number" id="montoCuota" name="montoCuota" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
+              <input type="text" inputmode="numeric" id="montoCuota" name="montoCuota" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required>
             </div>
           </div>
 
@@ -145,7 +145,7 @@
 
     <!-- Modal Formulario Nuevo Cliente -->
     <div id="client-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg m-4">
+      <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg m-4 overflow-y-auto max-h-[90vh]">
         <h2 class="text-2xl font-bold mb-4">Nuevo Cliente</h2>
         <form id="client-form" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
