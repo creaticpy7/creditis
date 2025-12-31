@@ -164,39 +164,40 @@ function setupEventListeners() {
     });
   }
   
+  // --- Lógica para guardar Nuevo Cliente (si existe el formulario) ---
+  if(clientForm) {
+    clientForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const formData = new FormData(clientForm);
+      
+      const cliente = {
+        cedula: formData.get('cedula'),
+        nombres: formData.get('nombres'),
+        apellidos: formData.get('apellidos'),
+        nombreApellido: `${formData.get('nombres')} ${formData.get('apellidos')}`, // Campo unificado
+        direccion: formData.get('direccion'),
+        barrio: formData.get('barrio'),
+        ciudad: formData.get('ciudad'),
+        telefono1: formData.get('telefono1'),
+        telefono2: formData.get('telefono2'),
+        refNombre: formData.get('refNombre'),
+        refTelefono: formData.get('refTelefono'),
+      };
+
+      try {
+        await saveCliente(cliente);
+          console.log('CLIENTE AGREGADO');
+        clientForm.reset();
+        clientModal.classList.add('hidden');
+      } catch (error) {
+        console.error('Error al guardar el cliente:', error);
+          console.error('Error al guardar el cliente. Verifique que la Cédula no esté duplicada.');
+      }
+    });
+  }
+
+  // --- Lógica para guardar Nuevo Préstamo (si existe el formulario) ---
   if (loanForm) {
-    // --- Lógica para guardar Nuevo Cliente ---
-    if(clientForm) {
-      clientForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const formData = new FormData(clientForm);
-        
-        const cliente = {
-          cedula: formData.get('cedula'),
-          nombres: formData.get('nombres'),
-          apellidos: formData.get('apellidos'),
-          nombreApellido: `${formData.get('nombres')} ${formData.get('apellidos')}`, // Campo unificado
-          direccion: formData.get('direccion'),
-          barrio: formData.get('barrio'),
-          ciudad: formData.get('ciudad'),
-          telefono1: formData.get('telefono1'),
-          telefono2: formData.get('telefono2'),
-          refNombre: formData.get('refNombre'),
-          refTelefono: formData.get('refTelefono'),
-        };
-
-        try {
-          await saveCliente(cliente);
-          alert('CLIENTE AGREGADO');
-          clientForm.reset();
-          clientModal.classList.add('hidden');
-        } catch (error) {
-          console.error('Error al guardar el cliente:', error);
-          alert('Error al guardar el cliente. Verifique que la Cédula no esté duplicada.');
-        }
-      });
-    }
-
     // Calcular interés total dinámicamente y aplicar formato
     const capitalInput = document.getElementById('capital');
     const cantidadCuotasInput = document.getElementById('cantidadCuotas');
@@ -230,16 +231,11 @@ function setupEventListeners() {
       const formData = new FormData(loanForm);
       const cedula = formData.get('cedula');
 
-      // --- CRITICAL FIX: Prevent client data overwriting ---
-      // 1. Check if client already exists
-      const existingClient = await getClienteByCedula(cedula);
-
-      // 2. If client does not exist, save a new basic client record.
-      if (!existingClient) {
-        const newClient = {
+      // --- DIAGNOSTIC STEP: Temporarily remove read transaction ---
+      const clientForLoan = {
           cedula: cedula,
           nombreApellido: formData.get('nombreApellido'),
-          nombres: '', // Provide empty defaults for other fields
+          nombres: '', 
           apellidos: '',
           direccion: '',
           barrio: '',
@@ -248,18 +244,27 @@ function setupEventListeners() {
           telefono2: '',
           refNombre: '',
           refTelefono: '',
-        };
-        await saveCliente(newClient);
+      };
+      await saveCliente(clientForLoan);
+
+      // Recalcular el interés para asegurar que se guarda el valor numérico
+      const capital = unformatNumber(formData.get('capital')) || 0;
+      const cantidadCuotas = parseInt(formData.get('cantidadCuotas')) || 0;
+      const montoCuota = unformatNumber(formData.get('montoCuota')) || 0;
+      let interesTotalNumerico = 0;
+      if (capital > 0 && cantidadCuotas > 0 && montoCuota > 0) {
+        const totalPagado = cantidadCuotas * montoCuota;
+        const interesGanado = totalPagado - capital;
+        interesTotalNumerico = parseFloat(((interesGanado / capital) * 100).toFixed(2));
       }
-      // If client exists, do nothing with the client data to avoid overwriting.
 
       const prestamo = {
         clienteCedula: cedula,
-        capital: unformatNumber(formData.get('capital')),
+        capital: capital,
         frecuenciaPago: formData.get('frecuenciaPago'),
-        cantidadCuotas: parseInt(formData.get('cantidadCuotas')),
-        montoCuota: unformatNumber(formData.get('montoCuota')),
-        interesTotal: document.getElementById('interesTotal').value,
+        cantidadCuotas: cantidadCuotas,
+        montoCuota: montoCuota,
+        interesTotal: interesTotalNumerico, // Guardar solo el número
         fechaDesembolso: formData.get('fechaDesembolso'),
         fechaPrimerPago: formData.get('fechaPrimerPago'),
         estado: formData.get('estado'),
@@ -267,12 +272,12 @@ function setupEventListeners() {
 
       try {
         await savePrestamo(prestamo);
-        alert('Préstamo grabado exitosamente.');
+        console.log('Préstamo grabado exitosamente.');
         loanForm.reset();
         loanModal.classList.add('hidden');
       } catch (error) {
         console.error('Error al grabar el préstamo:', error);
-        alert('Error al grabar el préstamo. Verifique la consola para más detalles.');
+        console.error('Error al grabar el préstamo. Verifique la consola para más detalles.');
       }
     });
   }

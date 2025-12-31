@@ -60,19 +60,29 @@ function saveCliente(cliente) {
     if (!db) return reject('Database not initialized');
     const transaction = db.transaction(['clientes'], 'readwrite');
     const store = transaction.objectStore('clientes');
+
+    transaction.oncomplete = () => {
+        console.log('Transaction [saveCliente] completed successfully.');
+    };
+    transaction.onerror = (event) => {
+        console.error('Transaction [saveCliente] error:', event.target.error);
+        reject('Transaction error: ' + event.target.error);
+    };
+
     const cedulaIndex = store.index('cedula');
     const getRequest = cedulaIndex.get(cliente.cedula);
 
     getRequest.onsuccess = () => {
       const existingClient = getRequest.result;
-      // Si el cliente existe, actualizamos sus datos. Si no, lo creamos.
       const dataToStore = existingClient ? { ...existingClient, ...cliente } : cliente;
       const putRequest = store.put(dataToStore);
       
       putRequest.onsuccess = () => resolve(putRequest.result);
-      putRequest.onerror = event => reject('Error saving client: ' + event.target.error);
+      // Let the transaction's onerror handle the final rejection.
+      putRequest.onerror = event => event.preventDefault(); 
     };
-    getRequest.onerror = event => reject('Error fetching client by cedula: ' + event.target.error);
+    // Let the transaction's onerror handle the final rejection.
+    getRequest.onerror = event => event.preventDefault();
   });
 }
 
@@ -94,10 +104,28 @@ function savePrestamo(prestamo) {
     if (!db) return reject('Database not initialized');
     const transaction = db.transaction(['prestamos'], 'readwrite');
     const store = transaction.objectStore('prestamos');
+
+    transaction.oncomplete = () => {
+      console.log('Transaction [savePrestamo] completed.');
+    };
+
+    transaction.onerror = (event) => {
+      console.error('Transaction [savePrestamo] error:', event.target.error);
+      reject('Transaction failed: ' + event.target.error);
+    };
+    
     const request = store.add(prestamo);
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = event => reject('Error saving prestamo: ' + event.target.error);
+    request.onsuccess = () => {
+      resolve(request.result);
+    };
+    
+    request.onerror = event => {
+      // Prevenir que el error aborte la transacción para que el transaction.onerror lo maneje
+      event.preventDefault();
+      console.error('Request [savePrestamo] error:', event.target.error);
+      reject('Error saving prestamo: ' + event.target.error);
+    };
   });
 }
 
