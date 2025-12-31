@@ -10,16 +10,16 @@
     - generic [ref=e10]:
       - generic [ref=e11]:
         - heading "Balance Total" [level=2] [ref=e12]
-        - paragraph [ref=e13]: Gs. 15.000.000
+        - paragraph [ref=e13]: Gs. 0
       - generic [ref=e14]:
         - heading "Deuda Total Clientes" [level=2] [ref=e15]
-        - paragraph [ref=e16]: Gs. 35.000.000
+        - paragraph [ref=e16]: Gs. 0
       - generic [ref=e17]:
         - heading "Cobros Hoy" [level=2] [ref=e18]
-        - paragraph [ref=e19]: Gs. 1.250.000
+        - paragraph [ref=e19]: Gs. 0
       - generic [ref=e20]:
         - heading "Clientes Morosos" [level=2] [ref=e21]
-        - paragraph [ref=e22]: "3"
+        - paragraph [ref=e22]: "0"
     - heading "Cobros de la Semana" [level=2] [ref=e24]
   - generic [ref=e28]:
     - heading "Nuevo Préstamo" [level=2] [ref=e29]
