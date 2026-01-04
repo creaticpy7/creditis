@@ -253,27 +253,86 @@ function setupEventListeners() {
       }
       // If client exists, do nothing with the client data to avoid overwriting.
 
+      // Recalcular el interés para asegurar que se guarda el valor numérico
+      const capital = unformatNumber(formData.get('capital')) || 0;
+      const cantidadCuotas = parseInt(formData.get('cantidadCuotas')) || 0;
+      const montoCuota = unformatNumber(formData.get('montoCuota')) || 0;
+      let interesTotalNumerico = 0;
+      if (capital > 0 && cantidadCuotas > 0 && montoCuota > 0) {
+        const totalPagado = cantidadCuotas * montoCuota;
+        const interesGanado = totalPagado - capital;
+        interesTotalNumerico = parseFloat(((interesGanado / capital) * 100).toFixed(2));
+      }
+
       const prestamo = {
         clienteCedula: cedula,
-        capital: unformatNumber(formData.get('capital')),
+        capital: capital,
         frecuenciaPago: formData.get('frecuenciaPago'),
-        cantidadCuotas: parseInt(formData.get('cantidadCuotas')),
-        montoCuota: unformatNumber(formData.get('montoCuota')),
-        interesTotal: document.getElementById('interesTotal').value,
+        cantidadCuotas: cantidadCuotas,
+        montoCuota: montoCuota,
+        interesTotal: interesTotalNumerico, // Guardar solo el número
         fechaDesembolso: formData.get('fechaDesembolso'),
         fechaPrimerPago: formData.get('fechaPrimerPago'),
         estado: formData.get('estado'),
       };
 
       try {
-        await savePrestamo(prestamo);
-        alert('Préstamo grabado exitosamente.');
+        const prestamoId = await savePrestamo(prestamo);
+        console.log('Préstamo grabado exitosamente con ID:', prestamoId);
+
+        await generarYGuardarPlanDePago(prestamo, prestamoId);
+
         loanForm.reset();
         loanModal.classList.add('hidden');
+        console.log('Plan de pago generado y modal cerrado.');
+
       } catch (error) {
-        console.error('Error al grabar el préstamo:', error);
-        alert('Error al grabar el préstamo. Verifique la consola para más detalles.');
+        console.error('Error durante el proceso de grabación del préstamo y plan de pago:', error);
       }
     });
+  }
+}
+
+/**
+ * Genera el plan de pagos para un préstamo y lo guarda en la base de datos.
+ * @param {object} prestamo - El objeto del préstamo.
+ * @param {number} prestamoId - El ID del préstamo recién guardado.
+ */
+async function generarYGuardarPlanDePago(prestamo, prestamoId) {
+  const { fechaPrimerPago, cantidadCuotas, frecuenciaPago, montoCuota } = prestamo;
+  let fechaActual = new Date(fechaPrimerPago + 'T00:00:00'); // Asegurar que se interpreta como fecha local
+
+  for (let i = 1; i <= cantidadCuotas; i++) {
+    const cuota = {
+      prestamoId: prestamoId,
+      numeroCuota: i,
+      montoCuota: montoCuota,
+      fechaVencimiento: new Date(fechaActual.getTime()),
+      estado: 'PENDIENTE',
+      // Campos para el pago
+      fechaPago: null,
+      montoPagado: null,
+      saldo: montoCuota,
+    };
+
+    // Guardar la cuota en la base de datos
+    await saveCuota(cuota);
+    console.log(`Cuota ${i} guardada para el préstamo ${prestamoId}`);
+
+    // Calcular la fecha de la siguiente cuota
+    switch (frecuenciaPago) {
+      case 'D':
+        fechaActual.setDate(fechaActual.getDate() + 1);
+        break;
+      case 'S':
+        fechaActual.setDate(fechaActual.getDate() + 7);
+        break;
+      case 'Q':
+        fechaActual.setDate(fechaActual.getDate() + 15);
+        break;
+      case 'M':
+        fechaActual.setMonth(fechaActual.getMonth() + 1);
+        break;
+    }
   }
 }

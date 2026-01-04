@@ -2,13 +2,14 @@ let db;
 
 function initDB() {
   return new Promise((resolve, reject) => {
-    // Incrementar la versión de la base de datos a 3
-    const request = indexedDB.open('CreditisDB', 3);
+    // Incrementar la versión de la base de datos a 4 para añadir el almacén de cuotas
+    const request = indexedDB.open('CreditisDB', 4);
 
     request.onupgradeneeded = event => {
       db = event.target.result;
-      console.log('Database upgrade needed');
+      console.log('Database upgrade needed. Upgrading to version 4.');
 
+      // --- Almacén de Clientes ---
       let clientesStore;
       if (!db.objectStoreNames.contains('clientes')) {
         clientesStore = db.createObjectStore('clientes', { keyPath: 'id', autoIncrement: true });
@@ -19,6 +20,7 @@ function initDB() {
         clientesStore.createIndex('cedula', 'cedula', { unique: true });
       }
 
+      // --- Almacén de Préstamos ---
       let prestamosStore;
       if (!db.objectStoreNames.contains('prestamos')) {
         prestamosStore = db.createObjectStore('prestamos', { keyPath: 'id', autoIncrement: true });
@@ -29,21 +31,26 @@ function initDB() {
         prestamosStore.createIndex('clienteCedula', 'clienteCedula', { unique: false });
       }
 
-      // --- Almacén de Pagos ---
-      let pagosStore;
+      // --- Almacén de Pagos (para pagos individuales) ---
       if (!db.objectStoreNames.contains('pagos')) {
-        pagosStore = db.createObjectStore('pagos', { keyPath: 'id', autoIncrement: true });
-      } else {
-        pagosStore = event.target.transaction.objectStore('pagos');
+        const pagosStore = db.createObjectStore('pagos', { keyPath: 'id', autoIncrement: true });
+        if (!pagosStore.indexNames.contains('prestamoId')) {
+          pagosStore.createIndex('prestamoId', 'prestamoId', { unique: false });
+          console.log('Index "prestamoId" created on "pagos" store');
+        }
       }
-      if (!pagosStore.indexNames.contains('prestamoId')) {
-        pagosStore.createIndex('prestamoId', 'prestamoId', { unique: false });
-        console.log('Index "prestamoId" created on "pagos" store');
+
+      // --- Almacén de Cuotas (Plan de Pagos) ---
+      if (!db.objectStoreNames.contains('cuotas')) {
+        const cuotasStore = db.createObjectStore('cuotas', { keyPath: 'id', autoIncrement: true });
+        cuotasStore.createIndex('prestamoId', 'prestamoId', { unique: false });
+        console.log('Object store "cuotas" and index "prestamoId" created.');
       }
     };
 
     request.onsuccess = event => {
       db = event.target.result;
+      window.db = event.target.result; // Exponer la DB globalmente para las pruebas
       console.log('Database opened successfully');
       resolve(db);
     };
@@ -134,4 +141,72 @@ function getPrestamoById(id) {
     };
     request.onerror = event => reject('Error fetching prestamo by id: ' + event.target.error);
   });
+}
+
+/**
+ * Guarda una nueva cuota en la base de datos.
+ * @param {object} cuota - El objeto de la cuota a guardar.
+ * @returns {Promise<number>} La ID de la nueva cuota guardada.
+ */
+function saveCuota(cuota) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('Database not initialized');
+    const transaction = db.transaction(['cuotas'], 'readwrite');
+    const store = transaction.objectStore('cuotas');
+    const request = store.add(cuota);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = event => reject('Error saving cuota: ' + event.target.error);
+  });
+}
+
+/**
+ * Obtiene todas las cuotas asociadas a un ID de préstamo.
+ * @param {number} prestamoId - El ID del préstamo.
+ * @returns {Promise<Array>} Una lista de las cuotas.
+ */
+function getCuotasByPrestamoId(prestamoId) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('Database not initialized');
+    const transaction = db.transaction(['cuotas'], 'readonly');
+    const store = transaction.objectStore('cuotas');
+    const index = store.index('prestamoId');
+    const request = index.getAll(prestamoId);
+
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = event => reject('Error fetching cuotas by prestamoId: ' + event.target.error);
+  });
+}
+
+/**
+ * Actualiza una cuota con la información de un pago.
+ * @param {number} cuotaId - El ID de la cuota a actualizar.
+ * @param {string} fechaPago - La fecha en que se realizó el pago.
+ * @param {number} montoPagado - El monto pagado.
+ * @returns {Promise}
+ */
+function updateCuotaPago(cuotaId, fechaPago, montoPagado) {
+    return new Promise((resolve, reject) => {
+        if (!db) return reject('Database not initialized');
+        const transaction = db.transaction(['cuotas'], 'readwrite');
+        const store = transaction.objectStore('cuotas');
+        const getRequest = store.get(cuotaId);
+
+        getRequest.onsuccess = () => {
+            const cuota = getRequest.result;
+            if (cuota) {
+                cuota.estado = 'PAGADO';
+                cuota.fechaPago = fechaPago;
+                cuota.montoPagado = montoPagado;
+                cuota.saldo = cuota.montoCuota - montoPagado;
+
+                const updateRequest = store.put(cuota);
+                updateRequest.onsuccess = () => resolve(updateRequest.result);
+                updateRequest.onerror = event => reject('Error updating cuota: ' + event.target.error);
+            } else {
+                reject('Cuota not found');
+            }
+        };
+        getRequest.onerror = event => reject('Error fetching cuota: ' + event.target.error);
+    });
 }

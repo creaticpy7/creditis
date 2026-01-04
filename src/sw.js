@@ -11,7 +11,9 @@ const urlsToCache = [
   'prestamos.html',
   'prestamos.js',
   'clientes.html',
-  'clientes.js'
+  'clientes.js',
+  'plan_pago.html',
+  'plan_pago.js'
 ];
 
 self.addEventListener('install', event => {
