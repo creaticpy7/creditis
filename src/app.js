@@ -164,40 +164,39 @@ function setupEventListeners() {
     });
   }
   
-  // --- Lógica para guardar Nuevo Cliente (si existe el formulario) ---
-  if(clientForm) {
-    clientForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const formData = new FormData(clientForm);
-      
-      const cliente = {
-        cedula: formData.get('cedula'),
-        nombres: formData.get('nombres'),
-        apellidos: formData.get('apellidos'),
-        nombreApellido: `${formData.get('nombres')} ${formData.get('apellidos')}`, // Campo unificado
-        direccion: formData.get('direccion'),
-        barrio: formData.get('barrio'),
-        ciudad: formData.get('ciudad'),
-        telefono1: formData.get('telefono1'),
-        telefono2: formData.get('telefono2'),
-        refNombre: formData.get('refNombre'),
-        refTelefono: formData.get('refTelefono'),
-      };
-
-      try {
-        await saveCliente(cliente);
-          console.log('CLIENTE AGREGADO');
-        clientForm.reset();
-        clientModal.classList.add('hidden');
-      } catch (error) {
-        console.error('Error al guardar el cliente:', error);
-          console.error('Error al guardar el cliente. Verifique que la Cédula no esté duplicada.');
-      }
-    });
-  }
-
-  // --- Lógica para guardar Nuevo Préstamo (si existe el formulario) ---
   if (loanForm) {
+    // --- Lógica para guardar Nuevo Cliente ---
+    if(clientForm) {
+      clientForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(clientForm);
+        
+        const cliente = {
+          cedula: formData.get('cedula'),
+          nombres: formData.get('nombres'),
+          apellidos: formData.get('apellidos'),
+          nombreApellido: `${formData.get('nombres')} ${formData.get('apellidos')}`, // Campo unificado
+          direccion: formData.get('direccion'),
+          barrio: formData.get('barrio'),
+          ciudad: formData.get('ciudad'),
+          telefono1: formData.get('telefono1'),
+          telefono2: formData.get('telefono2'),
+          refNombre: formData.get('refNombre'),
+          refTelefono: formData.get('refTelefono'),
+        };
+
+        try {
+          await saveCliente(cliente);
+          alert('CLIENTE AGREGADO');
+          clientForm.reset();
+          clientModal.classList.add('hidden');
+        } catch (error) {
+          console.error('Error al guardar el cliente:', error);
+          alert('Error al guardar el cliente. Verifique que la Cédula no esté duplicada.');
+        }
+      });
+    }
+
     // Calcular interés total dinámicamente y aplicar formato
     const capitalInput = document.getElementById('capital');
     const cantidadCuotasInput = document.getElementById('cantidadCuotas');
@@ -231,11 +230,16 @@ function setupEventListeners() {
       const formData = new FormData(loanForm);
       const cedula = formData.get('cedula');
 
-      // --- DIAGNOSTIC STEP: Temporarily remove read transaction ---
-      const clientForLoan = {
+      // --- CRITICAL FIX: Prevent client data overwriting ---
+      // 1. Check if client already exists
+      const existingClient = await getClienteByCedula(cedula);
+
+      // 2. If client does not exist, save a new basic client record.
+      if (!existingClient) {
+        const newClient = {
           cedula: cedula,
           nombreApellido: formData.get('nombreApellido'),
-          nombres: '', 
+          nombres: '', // Provide empty defaults for other fields
           apellidos: '',
           direccion: '',
           barrio: '',
@@ -244,8 +248,10 @@ function setupEventListeners() {
           telefono2: '',
           refNombre: '',
           refTelefono: '',
-      };
-      await saveCliente(clientForLoan);
+        };
+        await saveCliente(newClient);
+      }
+      // If client exists, do nothing with the client data to avoid overwriting.
 
       // Recalcular el interés para asegurar que se guarda el valor numérico
       const capital = unformatNumber(formData.get('capital')) || 0;
@@ -271,14 +277,62 @@ function setupEventListeners() {
       };
 
       try {
-        await savePrestamo(prestamo);
-        console.log('Préstamo grabado exitosamente.');
+        const prestamoId = await savePrestamo(prestamo);
+        console.log('Préstamo grabado exitosamente con ID:', prestamoId);
+        
+        await generarYGuardarPlanDePago(prestamo, prestamoId);
+
         loanForm.reset();
         loanModal.classList.add('hidden');
+        console.log('Plan de pago generado y modal cerrado.');
+
       } catch (error) {
-        console.error('Error al grabar el préstamo:', error);
-        console.error('Error al grabar el préstamo. Verifique la consola para más detalles.');
+        console.error('Error durante el proceso de grabación del préstamo y plan de pago:', error);
       }
     });
+  }
+}
+
+/**
+ * Genera el plan de pagos para un préstamo y lo guarda en la base de datos.
+ * @param {object} prestamo - El objeto del préstamo.
+ * @param {number} prestamoId - El ID del préstamo recién guardado.
+ */
+async function generarYGuardarPlanDePago(prestamo, prestamoId) {
+  const { fechaPrimerPago, cantidadCuotas, frecuenciaPago, montoCuota } = prestamo;
+  let fechaActual = new Date(fechaPrimerPago + 'T00:00:00'); // Asegurar que se interpreta como fecha local
+
+  for (let i = 1; i <= cantidadCuotas; i++) {
+    const cuota = {
+      prestamoId: prestamoId,
+      numeroCuota: i,
+      montoCuota: montoCuota,
+      fechaVencimiento: new Date(fechaActual.getTime()),
+      estado: 'PENDIENTE',
+      // Campos para el pago
+      fechaPago: null,
+      montoPagado: null,
+      saldo: montoCuota,
+    };
+    
+    // Guardar la cuota en la base de datos
+    await saveCuota(cuota);
+    console.log(`Cuota ${i} guardada para el préstamo ${prestamoId}`);
+
+    // Calcular la fecha de la siguiente cuota
+    switch (frecuenciaPago) {
+      case 'D':
+        fechaActual.setDate(fechaActual.getDate() + 1);
+        break;
+      case 'S':
+        fechaActual.setDate(fechaActual.getDate() + 7);
+        break;
+      case 'Q':
+        fechaActual.setDate(fechaActual.getDate() + 15);
+        break;
+      case 'M':
+        fechaActual.setMonth(fechaActual.getMonth() + 1);
+        break;
+    }
   }
 }
