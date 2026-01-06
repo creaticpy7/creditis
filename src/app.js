@@ -51,53 +51,11 @@ function unformatNumber(value) {
 document.addEventListener('DOMContentLoaded', () => {
   initDB().then(() => {
     console.log('Base de datos inicializada.');
-    if (document.getElementById('total-balance')) {
-      renderDashboard();
-    }
     setupEventListeners();
   }).catch(error => {
     console.error('Error al inicializar la base de datos:', error);
   });
 });
-
-function renderDashboard() {
-  // TODO: Reemplazar estos datos de ejemplo con cálculos reales de la base de datos.
-  const mockData = {
-    totalBalance: 15000000,
-    totalDebt: 35000000,
-    todayCollections: 1250000,
-    overdueClients: 3,
-    weeklyCollections: [500000, 750000, 1200000, 900000, 1500000, 400000, 100000]
-  };
-  document.getElementById('total-balance').textContent = `Gs. ${mockData.totalBalance.toLocaleString('es-PY')}`;
-  document.getElementById('total-debt').textContent = `Gs. ${mockData.totalDebt.toLocaleString('es-PY')}`;
-  document.getElementById('today-collections').textContent = `Gs. ${mockData.todayCollections.toLocaleString('es-PY')}`;
-  document.getElementById('overdue-clients').textContent = mockData.overdueClients;
-  renderWeeklyChart(mockData.weeklyCollections);
-}
-
-function renderWeeklyChart(weeklyData) {
-  const ctx = document.getElementById('weekly-chart').getContext('2d');
-  if (window.myChart instanceof Chart) window.myChart.destroy();
-  window.myChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-      datasets: [{
-        label: 'Cobros (Gs.)',
-        data: weeklyData,
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: { y: { beginAtZero: true, ticks: { callback: value => 'Gs. ' + value.toLocaleString('es-PY') } } },
-      plugins: { legend: { display: false } }
-    }
-  });
-}
 
 // --- Lógica de Eventos y Formularios ---
 
@@ -116,8 +74,13 @@ function setupEventListeners() {
   const cancelClientBtn = document.getElementById('cancel-client-btn');
   const clientForm = document.getElementById('client-form');
 
+  // Botones del Dashboard
+  const mainNewLoanBtn = document.getElementById('main-new-loan-btn');
+  const mainNewClientBtn = document.getElementById('main-new-client-btn');
+
   // Lógica del Menú
-  menuBtn.addEventListener('click', () => {
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
     const isHidden = navMenu.classList.contains('hidden');
     if (isHidden) {
       navMenu.classList.remove('hidden', 'opacity-0', 'scale-95');
@@ -129,12 +92,25 @@ function setupEventListeners() {
   });
 
   // Cerrar menú al hacer clic fuera
-  document.addEventListener('click', (event) => {
-    if (!menuBtn.contains(event.target) && !navMenu.contains(event.target)) {
-      navMenu.classList.add('opacity-0', 'scale-95');
-      setTimeout(() => navMenu.classList.add('hidden'), 300);
-    }
-  });
+    document.addEventListener('click', (event) => {
+        if (menuBtn && navMenu && !menuBtn.contains(event.target) && !navMenu.contains(event.target)) {
+            navMenu.classList.add('opacity-0', 'scale-95');
+            setTimeout(() => navMenu.classList.add('hidden'), 300);
+        }
+    });
+  }
+
+  // --- Lógica para los botones del Dashboard ---
+  if (mainNewLoanBtn) {
+    mainNewLoanBtn.addEventListener('click', () => {
+      loanModal.classList.remove('hidden');
+    });
+  }
+  if (mainNewClientBtn) {
+    mainNewClientBtn.addEventListener('click', () => {
+      clientModal.classList.remove('hidden');
+    });
+  }
 
   // --- Lógica para Modal de Nuevo Préstamo ---
   if (newLoanLink) {
@@ -307,7 +283,7 @@ async function generarYGuardarPlanDePago(prestamo, prestamoId) {
       prestamoId: prestamoId,
       numeroCuota: i,
       montoCuota: montoCuota,
-      fechaVencimiento: new Date(fechaActual.getTime()),
+      fechaVencimiento: fechaActual.toISOString().split('T')[0], // Guardar como YYYY-MM-DD
       estado: 'PENDIENTE',
       // Campos para el pago
       fechaPago: null,
